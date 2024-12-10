@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 import requests
 import time
 from datetime import datetime
@@ -24,6 +25,8 @@ def get_domain_from_url(url):
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 def get_article_metadata(article_title):
     baseurl_wikipedia = "https://de.wikipedia.org/w/api.php"
 
@@ -34,7 +37,7 @@ def get_article_metadata(article_title):
             "titles": article_title,
             "prop": "revisions|categories|info|links|extlinks|images|templates|langlinks|contributors|pageviews|extracts|coordinates|pageprops",
             "rvprop": "timestamp|user|comment|size|ids",
-            "rvlimit": 10,
+            "rvlimit": "max",
             "inprop": "url|displaytitle|watchers|visitors|modified",
             "explaintext": 1,
             "exintro": 1,
