@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Wikipedia Artikel Metadaten</title>
+        <style>
+            .image-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 20px;
+                padding: 20px;
+            }
+
+            .image-container {
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                overflow: hidden;
+                background: white;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .article-image {
+                width: 100%;
+                height: 200px;
+                object-fit: cover;
+                cursor: pointer;
+                transition: transform 0.3s ease;
+            }
+
+            .article-image:hover {
+                transform: scale(1.05);
+            }
+
+            .image-info {
+                padding: 15px;
+            }
+
+            .image-title {
+                margin: 0 0 10px 0;
+                font-size: 1em;
+                color: #333;
+            }
+
+            .image-description {
+                font-size: 0.9em;
+                color: #666;
+                margin: 5px 0;
+            }
+
+            .image-meta {
+                font-size: 0.8em;
+                color: #888;
+                margin: 5px 0 0 0;
+            }
+
+            .article-image {
+                width: 100%;
+                height: 200px;
+                object-fit: cover;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: transform 0.3s ease;
+            }
+
+            .article-image:hover {
+                transform: scale(1.05);
+            }
+
+            .image-info {
+                margin-top: 10px;
+                font-size: 0.9em;
+                color: #666;
+            }
+            .accordion {
+                background-color: #fff;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                margin-bottom: 10px;
+            }
+            .accordion-header {
+                background-color: #f4f4f4;
+                padding: 10px;
+                cursor: pointer;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .accordion-header:hover {
+                background-color: #e4e4e4;
+            }
+            .accordion-content {
+                display: none;
+                padding: 15px;
+                background-color: #fff;
+            }
+            .accordion-content.active {
+                display: block;
+            }
+            .accordion-arrow {
+                transition: transform 0.3s ease;
+            }
+            .accordion-arrow.active {
+                transform: rotate(180deg);
+            }
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+            }
+            .container {
+                width: 80%;
+                margin: 0 auto;
+            }
+            .metadata {
+                margin-top: 20px;
+                padding: 20px;
+                background-color: #f4f4f4;
+                border-radius: 8px;
+            }
+            .section {
+                margin-bottom: 20px;
+            }
+            .language-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .language-item {
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 8px;
+                background: white;
+            }
+
+            .language-link {
+                display: flex;
+                flex-direction: column;
+                text-decoration: none;
+                color: inherit;
+            }
+
+            .language-link:hover {
+                background-color: #f5f5f5;
+            }
+
+            .language-code {
+                font-weight: bold;
+                color: #666;
+            }
+
+            .language-name {
+                color: #000;
+            }
+
+            .language-autonym {
+                color: #666;
+                font-size: 0.9em;
+            }
+
+            .link-statistics {
+                margin-bottom: 20px;
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 8px;
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin: 15px 0;
+            }
+
+            .domain-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 10px;
+                margin-top: 10px;
+            }
+
+            .links-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .link-domain {
+                font-weight: bold;
+                margin-right: 10px;
+            }
+
+            .type-stats {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin: 20px 0;
+            }
+
+            .stat-bar {
+                background-color: white;
+                padding: 15px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                transition: transform 0.3s ease;
+                border-left: 5px solid;
+            }
+
+            .stat-bar:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            .stat-bar.news {
+                border-left-color: #2196f3;
+                color: #2196f3;
+            }
+            .stat-bar.academic {
+                border-left-color: #4caf50;
+                color: #4caf50;
+            }
+            .stat-bar.social {
+                border-left-color: #ff9800;
+                color: #ff9800;
+            }
+            .stat-bar.government {
+                border-left-color: #9c27b0;
+                color: #9c27b0;
+            }
+            .stat-bar.other {
+                border-left-color: #607d8b;
+                color: #607d8b;
+            }
+
+            .stat-bar-label {
+                font-weight: 500;
+            }
+
+            .stat-bar-count {
+                background-color: #f5f5f5;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.9em;
+            }
+
+            /* Link-Item Styling */
+            .link-item {
+                padding: 15px;
+                margin: 10px 0;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                transition: all 0.3s ease;
+                border-left-width: 5px;
+                border-left-style: solid;
+            }
+
+            .link-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            .link-type-news {
+                border-left-color: #2196f3;
+            }
+            .link-type-academic {
+                border-left-color: #4caf50;
+            }
+            .link-type-social {
+                border-left-color: #ff9800;
+            }
+            .link-type-government {
+                border-left-color: #9c27b0;
+            }
+            .link-type-other {
+                border-left-color: #607d8b;
+            }
+
+            .link-type-badge {
+                font-size: 0.75em;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .link-type-news .link-type-badge {
+                background-color: #e3f2fd;
+                color: #2196f3;
+            }
+            .link-type-academic .link-type-badge {
+                background-color: #e8f5e9;
+                color: #4caf50;
+            }
+            .link-type-social .link-type-badge {
+                background-color: #fff3e0;
+                color: #ff9800;
+            }
+            .link-type-government .link-type-badge {
+                background-color: #f3e5f5;
+                color: #9c27b0;
+            }
+            .link-type-other .link-type-badge {
+                background-color: #eceff1;
+                color: #607d8b;
+            }
+
+            .link-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 8px;
+                gap: 10px;
+            }
+
+            .link-domain {
+                font-weight: 600;
+                color: #333;
+            }
+
+            .link-url {
+                display: block;
+                color: #2196f3;
+                text-decoration: none;
+                word-break: break-all;
+                margin-top: 5px;
+                font-size: 0.9em;
+            }
+
+            .link-url:hover {
+                text-decoration: underline;
+            }
+
+            .domain-type {
+                font-size: 0.75em;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+            }
+
+            /* Spezifische Styles für jeden Typ */
+            .domain-type.type-news {
+                background-color: #e3f2fd;
+                color: #2196f3;
+            }
+
+            .domain-type.type-academic {
+                background-color: #e8f5e9;
+                color: #4caf50;
+            }
+
+            .domain-type.type-social {
+                background-color: #fff3e0;
+                color: #ff9800;
+            }
+
+            .domain-type.type-government {
+                background-color: #f3e5f5;
+                color: #9c27b0;
+            }
+
+            .domain-type.type-other {
+                background-color: #eceff1;
+                color: #607d8b;
+            }
+
+            .secure-badge {
+                background-color: #e8f5e9;
+                color: #4caf50;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 0.8em;
+            }
+
+            .domain-item {
+                padding: 12px;
+                border-radius: 6px;
+                background: white;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                transition: all 0.3s ease;
+            }
+
+            .domain-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            .domain-info {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: nowrap;
+            }
+
+            .domain-name {
+                font-weight: 500;
+                color: #333;
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .domain-count {
+                background-color: #f5f5f5;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 0.9em;
+                color: #666;
+                white-space: nowrap;
+            }
+
+            .domain-meta {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-shrink: 0;
+            }
+
+            .stat-item {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                padding: 15px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .stat-label {
+                font-size: 0.9em;
+                color: #666;
+            }
+
+            .stat-value {
+                font-size: 1.2em;
+                font-weight: 600;
+                color: #333;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Wikipedia Artikel Metadaten</h1>
+
+            <form method="post" action="/get_metadata">
+                <label for="article_title">Wikipedia Artikel Titel:</label
+                ><br />
+                <input
+                    type="text"
+                    id="article_title"
+                    name="article_title"
+                    required
+                /><br /><br />
+                <button type="submit">Metadaten abrufen</button>
+            </form>
+
+            {% if error %}
+            <p style="color: red">{{ error }}</p>
+            {% endif %} {% if metadata %}
+            <div class="metadata">
+                <h2>Metadaten für Artikel: {{ article_title }}</h2>
+
+                <!-- Basis-Informationen -->
+                <div class="section">
+                    <div class="accordion">
+                        <div
+                            class="accordion-header"
+                            onclick="toggleAccordion(this)"
+                        >
+                            <h3 style="margin: 0">Basis-Informationen</h3>
+                            <span class="accordion-arrow">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <p>
+                                URL:
+                                <a
+                                    href="{{ metadata.basic_info.url }}"
+                                    target="_blank"
+                                    >{{ metadata.basic_info.url }}</a
+                                >
+                            </p>
+                            <p>Seiten-ID: {{ metadata.basic_info.page_id }}</p>
+                            <p>
+                                Länge: {{ metadata.basic_info.length }} Zeichen
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zeitliche Informationen -->
+                <div class="section">
+                    <div class="accordion">
+                        <div
+                            class="accordion-header"
+                            onclick="toggleAccordion(this)"
+                        >
+                            <h3 style="margin: 0">Zeitliche Informationen</h3>
+                            <span class="accordion-arrow">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <p>
+                                <strong>Erstellt am:</strong> {{
+                                metadata.basic_info.created }} von {{
+                                metadata.basic_info.created_by }}
+                            </p>
+                            <p>
+                                <strong>Zuletzt geändert:</strong> {{
+                                metadata.basic_info.last_modified }}
+                            </p>
+
+                            {% if metadata.statistics %}
+                            <h4>Statistiken:</h4>
+                            <ul>
+                                <li>
+                                    Anzahl der Bearbeitungen: {{
+                                    metadata.statistics.total_revisions }}
+                                </li>
+                                <li>
+                                    Erste Bearbeitung: {{
+                                    metadata.statistics.first_edit }}
+                                </li>
+                                <li>
+                                    Letzte Bearbeitung: {{
+                                    metadata.statistics.last_edit }}
+                                </li>
+                                <li>
+                                    Anzahl unterschiedlicher Bearbeiter: {{
+                                    metadata.statistics.unique_editors }}
+                                </li>
+                            </ul>
+                            {% endif %} {% if metadata.basic_info.watchers %}
+                            <p>
+                                <strong>Beobachter:</strong> {{
+                                metadata.basic_info.watchers }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sprachversionen -->
+                <div class="section">
+                    <div class="accordion">
+                        <div
+                            class="accordion-header"
+                            onclick="toggleAccordion(this)"
+                        >
+                            <h3 style="margin: 0">
+                                Verfügbare Sprachen ({{ metadata.languages.count
+                                }})
+                            </h3>
+                            <span class="accordion-arrow">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            {% if metadata.languages.available_versions %}
+                            <div class="language-grid">
+                                {% for lang in
+                                metadata.languages.available_versions %}
+                                <div class="language-item">
+                                    <a
+                                        href="{{ lang.url }}"
+                                        target="_blank"
+                                        class="language-link"
+                                    >
+                                        <span class="language-code"
+                                            >{{ lang.lang }}</span
+                                        >
+                                        <span class="language-name"
+                                            >{{ lang.language_name }}</span
+                                        >
+                                        <span class="language-autonym"
+                                            >({{ lang.autonym }})</span
+                                        >
+                                    </a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p>Keine anderen Sprachversionen verfügbar</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inhalt -->
+                <div class="section">
+                    <div class="accordion">
+                        <div
+                            class="accordion-header"
+                            onclick="toggleAccordion(this)"
+                        >
+                            <h3 style="margin: 0">Inhalt</h3>
+                            <span class="accordion-arrow">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <p>{{ metadata.content.extract }}</p>
+                            <h4>Kategorien</h4>
+                            <ul>
+                                {% for category in metadata.content.categories
+                                %}
+                                <li>{{ category }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Externe Links -->
+                <div class="section">
+                    <div class="accordion">
+                        <div
+                            class="accordion-header"
+                            onclick="toggleAccordion(this)"
+                        >
+                            <h3 style="margin: 0">
+                                Externe Links ({{
+                                metadata.references.summary.total_count }})
+                            </h3>
+                            <span class="accordion-arrow">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <!-- Link-Statistiken -->
+                            <div class="link-statistics">
+                                <h4>Übersicht</h4>
+                                <div class="stats-grid">
+                                    <div class="stat-item">
+                                        <span class="stat-label"
+                                            >Gesamtanzahl:</span
+                                        >
+                                        <span class="stat-value"
+                                            >{{
+                                            metadata.references.summary.total_count
+                                            }}</span
+                                        >
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label"
+                                            >Sichere Links (HTTPS):</span
+                                        >
+                                        <span class="stat-value"
+                                            >{{
+                                            metadata.references.summary.secure_links
+                                            }}</span
+                                        >
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label"
+                                            >Unterschiedliche Domains:</span
+                                        >
+                                        <span class="stat-value"
+                                            >{{
+                                            metadata.references.summary.domain_count
+                                            }}</span
+                                        >
+                                    </div>
+                                </div>
+
+                                <h4>Link-Typen</h4>
+                                <div class="type-stats">
+                                    <div class="stat-bar news">
+                                        <span class="stat-bar-label"
+                                            >Nachrichten</span
+                                        >
+                                        <span class="stat-bar-count"
+                                            >{{
+                                            metadata.references.summary.types.news
+                                            }}</span
+                                        >
+                                    </div>
+                                    <div class="stat-bar academic">
+                                        <span class="stat-bar-label"
+                                            >Akademisch</span
+                                        >
+                                        <span class="stat-bar-count"
+                                            >{{
+                                            metadata.references.summary.types.academic
+                                            }}</span
+                                        >
+                                    </div>
+                                    <div class="stat-bar social">
+                                        <span class="stat-bar-label"
+                                            >Social Media</span
+                                        >
+                                        <span class="stat-bar-count"
+                                            >{{
+                                            metadata.references.summary.types.social
+                                            }}</span
+                                        >
+                                    </div>
+                                    <div class="stat-bar government">
+                                        <span class="stat-bar-label"
+                                            >Behörden</span
+                                        >
+                                        <span class="stat-bar-count"
+                                            >{{
+                                            metadata.references.summary.types.government
+                                            }}</span
+                                        >
+                                    </div>
+                                    <div class="stat-bar other">
+                                        <span class="stat-bar-label"
+                                            >Sonstige</span
+                                        >
+                                        <span class="stat-bar-count"
+                                            >{{
+                                            metadata.references.summary.types.other
+                                            }}</span
+                                        >
+                                    </div>
+                                </div>
+
+                                <h4>Top 10 Domains</h4>
+                                <div class="domain-list">
+                                    {% for domain, info in
+                                    metadata.references.summary.top_domains.items()
+                                    %}
+                                    <div class="domain-item">
+                                        <div class="domain-info">
+                                            <span class="domain-name"
+                                                >{{ domain }}</span
+                                            >
+                                            <div class="domain-meta">
+                                                <span
+                                                    class="domain-type type-{{ info.type }}"
+                                                    >{{ info.type }}</span
+                                                >
+                                                <span class="domain-count"
+                                                    >{{ info.count }}</span
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Alle Links -->
+                            <div class="links-container">
+                                <h4>Alle externen Links</h4>
+                                <div class="links-grid">
+                                    {% for link in
+                                    metadata.references.external_links %}
+                                    <div
+                                        class="link-item link-type-{{ link.type }}"
+                                    >
+                                        <div class="link-header">
+                                            <span class="link-domain"
+                                                >{{ link.domain }}</span
+                                            >
+                                            <span class="link-type-badge"
+                                                >{{ link.type }}</span
+                                            >
+                                            {% if link.is_secure %}
+                                            <span class="secure-badge">🔒</span>
+                                            {% endif %}
+                                        </div>
+                                        <a
+                                            href="{{ link.url }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="link-url"
+                                        >
+                                            {{ link.url }}
+                                        </a>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Versionshistorie -->
+                <div class="section">
+                    <div class="accordion">
+                        <div
+                            class="accordion-header"
+                            onclick="toggleAccordion(this)"
+                        >
+                            <h3 style="margin: 0">Versionshistorie</h3>
+                            <span class="accordion-arrow">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            {% if metadata.history and
+                            metadata.history.revisions %}
+                            <ul>
+                                {% for revision in metadata.history.revisions %}
+                                <li>
+                                    {{ revision.timestamp }} - {{ revision.user
+                                    }}: {{ revision.comment }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p>Keine Versionshistorie verfügbar</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bilder -->
+                <div class="section">
+                    <div class="accordion">
+                        <div
+                            class="accordion-header"
+                            onclick="toggleAccordion(this)"
+                        >
+                            <h3 style="margin: 0">
+                                Bilder ({{ metadata.images|length }})
+                            </h3>
+                            <span class="accordion-arrow">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            {% if metadata.images %}
+                            <div class="image-grid">
+                                {% for image in metadata.images %} {% if
+                                image.mime.startswith('image/') %}
+                                <div class="image-container">
+                                    <img
+                                        src="{{ image.url }}"
+                                        alt="{{ image.title }}"
+                                        loading="lazy"
+                                        class="article-image"
+                                        onclick="openImageModal(this.src, '{{ image.title }}')"
+                                    />
+                                    <div class="image-info">
+                                        <h4 class="image-title">
+                                            {{ image.title }}
+                                        </h4>
+                                        {% if image.description %}
+                                        <p class="image-description">
+                                            {{ image.description }}
+                                        </p>
+                                        {% endif %}
+                                        <p class="image-meta">
+                                            {{ image.width }}x{{ image.height }}
+                                            Pixel ({{ (image.size /
+                                            1024)|round(1) }} KB)
+                                        </p>
+                                    </div>
+                                </div>
+                                {% endif %} {% endfor %}
+                            </div>
+                            {% else %}
+                            <p>Keine Bilder verfügbar</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mitwirkende -->
+                <div class="section">
+                    <div class="accordion">
+                        <div
+                            class="accordion-header"
+                            onclick="toggleAccordion(this)"
+                        >
+                            <h3 style="margin: 0">Mitwirkende</h3>
+                            <span class="accordion-arrow">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            {% if metadata.contributors %}
+                            <p>
+                                {% for contributor in metadata.contributors %}
+                                {{ contributor.name }}{% if not loop.last %} |
+                                {% endif %} {% endfor %}
+                            </p>
+                            {% else %}
+                            <p>Keine Mitwirkenden-Informationen verfügbar</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <script>
+            function toggleAccordion(element) {
+                const content = element.nextElementSibling;
+                const arrow = element.querySelector(".accordion-arrow");
+
+                content.classList.toggle("active");
+                arrow.classList.toggle("active");
+            }
+        </script>
+    </body>
+</html>
