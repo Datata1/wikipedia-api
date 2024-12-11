@@ -5,6 +5,8 @@ from fastapi.staticfiles import StaticFiles
 import requests
 import time
 from datetime import datetime
+import traceback
+import json
 
 def format_timestamp(ts):
     if ts:
@@ -299,22 +301,202 @@ def get_article_metadata(article_title):
         print(f"Fehler beim Abrufen der Metadaten: {str(e)}")
         return None
 
+def search_wikipedia_articles(search_term):
+    baseurl_wikipedia = "https://de.wikipedia.org/w/api.php"
+
+    # Erste Suche für Artikel
+    search_params = {
+        "action": "query",
+        "format": "json",
+        "list": "search",
+        "srsearch": search_term,
+        "srlimit": 10,
+        "srprop": "snippet",
+        "prop": "info|extracts|pageimages",
+        "inprop": "url",
+        "pithumbsize": 200,
+        "explaintext": 1,
+        "exintro": 1
+    }
+
+    try:
+        print(f"Searching for: {search_term}")
+        response = requests.get(baseurl_wikipedia, params=search_params)
+        data = response.json()
+        print(f"Initial search response: {json.dumps(data, indent=2)}")  # Debug output
+
+        suggestions = []
+
+        # Verarbeite Suchergebnisse
+        if 'query' in data and 'search' in data['query']:
+            for result in data['query']['search']:
+                suggestion = {
+                    "title": result.get('title', ''),
+                    "pageid": result.get('pageid', ''),
+                    "snippet": result.get('snippet', '').replace('<span class="searchmatch">', '<mark>').replace('</span>', '</mark>'),
+                    "url": f"https://de.wikipedia.org/wiki/{result.get('title', '').replace(' ', '_')}"
+                }
+                suggestions.append(suggestion)
+                print(f"Added suggestion: {suggestion['title']}")  # Debug output
+
+        # Wenn keine Ergebnisse, versuche alternative Suche
+        if not suggestions:
+            alt_params = {
+                "action": "opensearch",
+                "search": search_term,
+                "limit": 10,
+                "namespace": 0,
+                "format": "json"
+            }
+
+            alt_response = requests.get(baseurl_wikipedia, params=alt_params)
+            alt_data = alt_response.json()
+            print(f"Alternative search response: {json.dumps(alt_data, indent=2)}")  # Debug output
+
+            if len(alt_data) >= 4:
+                for i in range(len(alt_data[1])):
+                    suggestions.append({
+                        "title": alt_data[1][i],
+                        "description": alt_data[2][i],
+                        "url": alt_data[3][i]
+                    })
+
+        # "Meinten Sie" Vorschläge
+        didyoumean_params = {
+            "action": "query",
+            "format": "json",
+            "list": "search",
+            "srnamespace": "0",
+            "srsearch": search_term,
+            "srinfo": "suggestion"
+        }
+
+        dym_response = requests.get(baseurl_wikipedia, params=didyoumean_params)
+        dym_data = dym_response.json()
+        print(f"Did you mean response: {json.dumps(dym_data, indent=2)}")  # Debug output
+
+        if 'query' in dym_data and 'searchinfo' in dym_data['query']:
+            if 'suggestion' in dym_data['query']['searchinfo']:
+                suggestions.append({
+                    "title": dym_data['query']['searchinfo']['suggestion'],
+                    "is_suggestion": True
+                })
+
+        print(f"Final suggestions count: {len(suggestions)}")
+        print(f"Final suggestions: {json.dumps(suggestions, indent=2)}")  # Debug output
+        return suggestions
+
+    except Exception as e:
+        print(f"Error in search: {str(e)}")
+        traceback.print
+
+def search_wikipedia_articles(search_term):
+    baseurl_wikipedia = "https://de.wikipedia.org/w/api.php"
+
+    # Erste Suche für Artikel
+    search_params = {
+        "action": "query",
+        "format": "json",
+        "list": "search",
+        "srsearch": search_term,
+        "srlimit": 10,
+        "srprop": "snippet"
+    }
+
+    try:
+        print(f"Searching for: {search_term}")
+        response = requests.get(baseurl_wikipedia, params=search_params)
+        data = response.json()
+
+        suggestions = []
+
+        # Verarbeite Suchergebnisse
+        if 'query' in data and 'search' in data['query']:
+            for result in data['query']['search']:
+                # Zusätzliche Abfrage für Bilder und Extrakt
+                detail_params = {
+                    "action": "query",
+                    "format": "json",
+                    "pageids": result['pageid'],
+                    "prop": "extracts|pageimages|info",
+                    "exintro": 1,
+                    "explaintext": 1,
+                    "inprop": "url",
+                    "piprop": "thumbnail",
+                    "pithumbsize": 200
+                }
+
+                detail_response = requests.get(baseurl_wikipedia, params=detail_params)
+                detail_data = detail_response.json()
+
+                if 'query' in detail_data and 'pages' in detail_data['query']:
+                    page = next(iter(detail_data['query']['pages'].values()))
+
+                    suggestion = {
+                        "title": result.get('title', ''),
+                        "pageid": result.get('pageid', ''),
+                        "snippet": result.get('snippet', '').replace('<span class="searchmatch">', '<mark>').replace('</span>', '</mark>'),
+                        "url": f"https://de.wikipedia.org/wiki/{result.get('title', '').replace(' ', '_')}",
+                        "thumbnail": page.get('thumbnail', {}).get('source') if 'thumbnail' in page else None,
+                        "extract": page.get('extract', '')[:200] + '...' if page.get('extract') else ''
+                    }
+                    suggestions.append(suggestion)
+                    print(f"Added suggestion: {suggestion['title']} with thumbnail: {'Yes' if suggestion.get('thumbnail') else 'No'}")
+
+        # "Meinten Sie" Vorschläge am Ende hinzufügen
+        didyoumean_params = {
+            "action": "query",
+            "format": "json",
+            "list": "search",
+            "srnamespace": "0",
+            "srsearch": search_term,
+            "srinfo": "suggestion"
+        }
+
+        dym_response = requests.get(baseurl_wikipedia, params=didyoumean_params)
+        dym_data = dym_response.json()
+
+        if 'query' in dym_data and 'searchinfo' in dym_data['query']:
+            if 'suggestion' in dym_data['query']['searchinfo']:
+                suggestions.append({
+                    "title": dym_data['query']['searchinfo']['suggestion'],
+                    "is_suggestion": True
+                })
+
+        print(f"Final suggestions count: {len(suggestions)}")
+        return suggestions
+
+    except Exception as e:
+        print(f"Error in search: {str(e)}")
+        traceback.print_exc()
+    return []
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("wiki.html", {"request": request})
 
 @app.post("/get_metadata", response_class=HTMLResponse)
 async def get_metadata(request: Request, article_title: str = Form(...)):
     metadata = get_article_metadata(article_title)
 
     if not metadata:
-        return templates.TemplateResponse("index.html", {
+        # Wenn kein exakter Treffer, suche nach Vorschlägen
+        suggestions = search_wikipedia_articles(article_title)
+        print(f"suggestions: {suggestions}")
+        return templates.TemplateResponse("wiki.html", {
             "request": request,
-            "error": f"Der Artikel '{article_title}' existiert nicht."
+            "error": f"Der Artikel '{article_title}' wurde nicht gefunden.",
+            "suggestions": suggestions,
+            "article_title": article_title
         })
 
-    return templates.TemplateResponse("index.html", {
+
+    return templates.TemplateResponse("wiki.html", {
         "request": request,
         "metadata": metadata,
         "article_title": article_title
     })
+
+@app.get("/aufgabe6-4", response_class=HTMLResponse)
+async def aufgabe6_4(request: Request):
+    return templates.TemplateResponse("aufgabe6-4.html", {"request": request})
