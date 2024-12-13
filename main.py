@@ -1,12 +1,20 @@
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from jinja2 import Environment, FileSystemLoader
+from starlette.websockets import WebSocketState
 import requests
-import time
 from datetime import datetime
 import traceback
 import json
+import subprocess
+import asyncio
+import os
+import logging
+import chardet
+
+
 
 def format_timestamp(ts):
     if ts:
@@ -164,6 +172,7 @@ def get_article_metadata(article_title):
             "other": 0
         }
 
+        print(f"external_links {external_links}")
         for link in external_links:
             # Domain-Statistiken
             if link["domain"] in domain_stats:
@@ -191,19 +200,34 @@ def get_article_metadata(article_title):
                 reverse=True
             )[:10])
 
-            metadata["references"] = {
-                "external_links": external_links,
-                "internal_links": [link["title"] for link in page.get("links", [])],
-                "summary": {
-                    "total_count": len(external_links),
-                    "secure_links": len([link for link in external_links if link["is_secure"]]),
-                    "types": type_stats,
-                    "protocols": protocol_stats,
-                    "top_domains": top_domains,
-                    "domain_count": len(domain_stats)
+            try:
+                metadata["references"] = {
+                    "external_links": external_links,
+                    "internal_links": [link["title"] for link in page.get("links", [])],
+                    "summary": {
+                        "total_count": len(external_links),
+                        "secure_links": len([link for link in external_links if link["is_secure"]]),
+                        "types": type_stats,
+                        "protocols": protocol_stats,
+                        "top_domains": top_domains,
+                        "domain_count": len(domain_stats)
+                    }
                 }
-            }
-
+            except Exception as e:
+                print(f"Error creating references summary: {e}")
+                metadata["references"] = {
+                    "external_links": [],
+                    "internal_links": [],
+                    "summary": {
+                        "total_count": 0,
+                        "secure_links": 0,
+                        "types": {"news": 0, "academic": 0, "social": 0, "government": 0, "other": 0},
+                        "protocols": {"http": 0, "https": 0, "other": 0},
+                        "top_domains": {},
+                        "domain_count": 0
+                    }
+                }
+        print(metadata)
         metadata["languages"]["available_versions"].sort(key=lambda x: x["language_name"])
         # Füge die Anzahl der verfügbaren Sprachen hinzu
         metadata["languages"]["count"] = len(metadata["languages"]["available_versions"])
@@ -310,7 +334,7 @@ def search_wikipedia_articles(search_term):
         "format": "json",
         "list": "search",
         "srsearch": search_term,
-        "srlimit": 10,
+        "srlimit": "max",
         "srprop": "snippet",
         "prop": "info|extracts|pageimages",
         "inprop": "url",
@@ -390,99 +414,19 @@ def search_wikipedia_articles(search_term):
         print(f"Error in search: {str(e)}")
         traceback.print
 
-def search_wikipedia_articles(search_term):
-    baseurl_wikipedia = "https://de.wikipedia.org/w/api.php"
-
-    # Erste Suche für Artikel
-    search_params = {
-        "action": "query",
-        "format": "json",
-        "list": "search",
-        "srsearch": search_term,
-        "srlimit": 10,
-        "srprop": "snippet"
-    }
-
-    try:
-        print(f"Searching for: {search_term}")
-        response = requests.get(baseurl_wikipedia, params=search_params)
-        data = response.json()
-
-        suggestions = []
-
-        # Verarbeite Suchergebnisse
-        if 'query' in data and 'search' in data['query']:
-            for result in data['query']['search']:
-                # Zusätzliche Abfrage für Bilder und Extrakt
-                detail_params = {
-                    "action": "query",
-                    "format": "json",
-                    "pageids": result['pageid'],
-                    "prop": "extracts|pageimages|info",
-                    "exintro": 1,
-                    "explaintext": 1,
-                    "inprop": "url",
-                    "piprop": "thumbnail",
-                    "pithumbsize": 200
-                }
-
-                detail_response = requests.get(baseurl_wikipedia, params=detail_params)
-                detail_data = detail_response.json()
-
-                if 'query' in detail_data and 'pages' in detail_data['query']:
-                    page = next(iter(detail_data['query']['pages'].values()))
-
-                    suggestion = {
-                        "title": result.get('title', ''),
-                        "pageid": result.get('pageid', ''),
-                        "snippet": result.get('snippet', '').replace('<span class="searchmatch">', '<mark>').replace('</span>', '</mark>'),
-                        "url": f"https://de.wikipedia.org/wiki/{result.get('title', '').replace(' ', '_')}",
-                        "thumbnail": page.get('thumbnail', {}).get('source') if 'thumbnail' in page else None,
-                        "extract": page.get('extract', '')[:200] + '...' if page.get('extract') else ''
-                    }
-                    suggestions.append(suggestion)
-                    print(f"Added suggestion: {suggestion['title']} with thumbnail: {'Yes' if suggestion.get('thumbnail') else 'No'}")
-
-        # "Meinten Sie" Vorschläge am Ende hinzufügen
-        didyoumean_params = {
-            "action": "query",
-            "format": "json",
-            "list": "search",
-            "srnamespace": "0",
-            "srsearch": search_term,
-            "srinfo": "suggestion"
-        }
-
-        dym_response = requests.get(baseurl_wikipedia, params=didyoumean_params)
-        dym_data = dym_response.json()
-
-        if 'query' in dym_data and 'searchinfo' in dym_data['query']:
-            if 'suggestion' in dym_data['query']['searchinfo']:
-                suggestions.append({
-                    "title": dym_data['query']['searchinfo']['suggestion'],
-                    "is_suggestion": True
-                })
-
-        print(f"Final suggestions count: {len(suggestions)}")
-        return suggestions
-
-    except Exception as e:
-        print(f"Error in search: {str(e)}")
-        traceback.print_exc()
-    return []
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
+    print(os.getcwd())
     return templates.TemplateResponse("wiki.html", {"request": request})
 
 @app.post("/get_metadata", response_class=HTMLResponse)
 async def get_metadata(request: Request, article_title: str = Form(...)):
+    print("Starting get_metadata for article:", article_title)
     metadata = get_article_metadata(article_title)
 
     if not metadata:
-        # Wenn kein exakter Treffer, suche nach Vorschlägen
         suggestions = search_wikipedia_articles(article_title)
-        print(f"suggestions: {suggestions}")
         return templates.TemplateResponse("wiki.html", {
             "request": request,
             "error": f"Der Artikel '{article_title}' wurde nicht gefunden.",
@@ -490,6 +434,37 @@ async def get_metadata(request: Request, article_title: str = Form(...)):
             "article_title": article_title
         })
 
+    # Stelle sicher, dass die komplette Struktur existiert
+    if 'references' not in metadata:
+        metadata['references'] = {}
+    if 'summary' not in metadata['references']:
+        metadata['references']['summary'] = {}
+
+    # Stelle sicher, dass alle erforderlichen Unterstrukturen existieren
+    default_summary = {
+        'types': {
+            'news': 0,
+            'academic': 0,
+            'social': 0,
+            'government': 0,
+            'other': 0
+        },
+        'total_count': 0,
+        'secure_links': 0,
+        'protocols': {
+            'http': 0,
+            'https': 0,
+            'other': 0
+        },
+        'top_domains': {},  # Leeres dict für top_domains
+        'domain_count': 0
+    }
+
+    # Update die summary-Struktur mit den Standardwerten
+    metadata['references']['summary'] = {
+        **default_summary,
+        **metadata['references'].get('summary', {})
+    }
 
     return templates.TemplateResponse("wiki.html", {
         "request": request,
@@ -500,3 +475,73 @@ async def get_metadata(request: Request, article_title: str = Form(...)):
 @app.get("/aufgabe6-4", response_class=HTMLResponse)
 async def aufgabe6_4(request: Request):
     return templates.TemplateResponse("aufgabe6-4.html", {"request": request})
+
+@app.websocket("/ws/llama")
+async def llama_stream(websocket: WebSocket):
+    await websocket.accept()
+    logging.info("WebSocket accepted")
+
+    process = None
+    try:
+        logging.info("Starting llama-cli process in interactive mode")
+
+        # Start llama-cli im interaktiven Modus
+        process = await asyncio.create_subprocess_exec(
+            "./llama.cpp/build/bin/llama-cli",
+            "-m", "./llama.cpp/models/Llama-3.2-1B-Instruct-Q5_K_M.gguf",
+            "--interactive",
+            "--conversation",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.PIPE
+        )
+
+        logging.info("llama-cli process started")
+
+        # Lese den Output des Prozesses Zeichenweise
+        async def read_output():
+            while True:
+                byte = await process.stdout.read(1)
+                if not byte:
+                    break
+                try:
+                    if byte.decode('utf-8'):
+                        char = byte.decode('utf-8')
+                    elif byte.decode('latin'):
+                        char = byte.decode('latin')
+                    elif byte.decode('tis-620'):
+                        char = byte.decode('tis-620')
+                    elif byte.decode('iso-8859-5'):
+                        char = byte.decode('iso-8859-5')
+                    else:
+                        char = byte.decode('utf-16')
+
+                    logging.debug(f"Process output: {char}")
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        await websocket.send_text(char)
+                except UnicodeDecodeError:
+                    logging.error("Failed to decode byte, skipping it")
+                    continue
+
+        asyncio.create_task(read_output())
+
+        while True:
+            user_message = await websocket.receive_text()
+            logging.debug(f"Received message: {user_message}")
+            if user_message:
+                process.stdin.write(user_message.encode() + b'\n')
+                await process.stdin.drain()
+
+    except Exception as e:
+        logging.error(f"Unexpected error: {e}")
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.send_text(f"Unerwarteter Fehler: {str(e)}")
+
+    finally:
+        if process:
+            process.terminate()
+            logging.info("Terminating llama-cli process")
+
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.close()
+            logging.info("WebSocket closed")

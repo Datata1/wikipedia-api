@@ -1,0 +1,168 @@
+{% block styles %}
+<style>
+    #output {
+        white-space: pre-wrap;
+        background: #f4f4f4;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    #chat-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 300px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    #chat-header {
+        background: #007bff;
+        color: #fff;
+        padding: 10px;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
+        font-weight: bold;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    #chat-content {
+        display: none;
+    }
+
+    #chat-messages {
+        height: 600px;
+        overflow-y: auto;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    #chat-input {
+        display: flex;
+        padding: 10px;
+    }
+
+    #chat-input textarea {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 5px;
+        resize: none;
+    }
+
+    #chat-input button {
+        margin-left: 5px;
+        padding: 5px 10px;
+        border: none;
+        border-radius: 5px;
+        background: #007bff;
+        color: #fff;
+        cursor: pointer;
+    }
+</style>
+{% endblock %} {% block content %}
+<div id="chat-container">
+    <div id="chat-header">Chat</div>
+    <div id="chat-content">
+        <div id="chat-messages"></div>
+        <div id="chat-input">
+            <textarea
+                id="chat-textarea"
+                rows="2"
+                placeholder="Nachricht eingeben..."
+            ></textarea>
+            <button id="chat-send">Senden</button>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block script %}
+<script>
+    const chatHeader = document.getElementById("chat-header");
+    const chatContent = document.getElementById("chat-content");
+    const chatMessages = document.getElementById("chat-messages");
+    const chatTextarea = document.getElementById("chat-textarea");
+    const chatSend = document.getElementById("chat-send");
+
+    const outputDiv = document.getElementById("output");
+    if (!outputDiv) {
+        console.warn(
+            "Output-Element nicht gefunden. Ausgabe wird übersprungen.",
+        );
+    }
+
+    // WebSocket-Verbindung herstellen
+    const socket = new WebSocket("ws://127.0.0.1:8000/ws/llama");
+
+    chatHeader.addEventListener("click", () => {
+        chatContent.style.display =
+            chatContent.style.display === "none" ? "block" : "none";
+    });
+
+    let textBuffer = "";
+    socket.onmessage = (event) => {
+        const message = document.createElement("span");
+        if (outputDiv) {
+            // Füge den empfangenen Text zum Puffer hinzu
+            textBuffer += event.data;
+
+            // Zeige jedes Zeichen nacheinander
+            let index = 0;
+            const intervalId = setInterval(() => {
+                if (index < textBuffer.length) {
+                    outputDiv.innerHTML += textBuffer[index];
+                    outputDiv.scrollTop = outputDiv.scrollHeight; // Scrollen ans Ende
+                    index++;
+                } else {
+                    clearInterval(intervalId); // Stoppe das Intervall, wenn der gesamte Text angezeigt wurde
+                }
+            }, 10);
+        }
+
+        message.textContent = event.data;
+        chatMessages.appendChild(message);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    socket.onclose = () => {
+        if (outputDiv) {
+            outputDiv.textContent += "\n[Stream beendet]";
+        }
+    };
+
+    socket.onerror = (error) => {
+        if (outputDiv) {
+            outputDiv.textContent += "\n[Fehler: " + error + "]";
+        }
+    };
+
+    // Wenn der Benutzer auf "Senden" klickt, sende die Nachricht an den WebSocket
+    chatSend.addEventListener("click", () => {
+        const message = chatTextarea.value;
+        if (message.trim()) {
+            // Nachricht an den Server senden
+            socket.send(message);
+            chatTextarea.value = ""; // Eingabefeld zurücksetzen
+
+            // Nachricht im Chat anzeigen
+            const userMessage = document.createElement("div");
+            userMessage.textContent = `Du: ${message}`;
+            chatMessages.appendChild(userMessage);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    });
+
+    // Optional: Nachricht auch bei Enter-Taste senden
+    chatTextarea.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            chatSend.click();
+        }
+    });
+</script>
+{% endblock %}

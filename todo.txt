@@ -1,0 +1,4 @@
+- anzahl der views in den letzten 30 Tagen
+- wenn mehr als 500 bearbeitungen ein plus dranhängen
+- redirects hinzufügen, auf Welche anderen Artikel referenziert diese Seite
+- RAG

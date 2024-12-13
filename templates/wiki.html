@@ -757,7 +757,9 @@
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <h3 style="margin: 0">
                         Externe Links ({{
-                        metadata.references.summary.total_count }})
+                        metadata['references']['summary']['total_count'] if
+                        metadata and metadata.get('references') and
+                        metadata['references'].get('summary') else 0 }})
                     </h3>
                     <span class="accordion-arrow">▼</span>
                 </div>
