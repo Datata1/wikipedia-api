@@ -3,7 +3,7 @@
 0. Clone the repository
 ```sh
 git clone --recurse-submodules https://github.com/Datata1/wikipedia-api
-``
+```
 
 1. Create a virtual environment
 ```sh
