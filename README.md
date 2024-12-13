@@ -20,6 +20,13 @@ pip install -r requirements.txt
 wget -P ./llama.cpp/models https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q5_K_M.gguf
 ```
 
+5. build Llama.cpp
+```sh
+cd llama.cpp
+cmake -B build
+cmake --build build --config Release
+```
+
 5. start uvicorn
 ```sh
 uvicorn main:app --reload
