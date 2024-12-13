@@ -1,5 +1,10 @@
 # wikipedia-api
 
+0. Clone the repository
+```sh
+git clone --recurse-submodules https://github.com/Datata1/wikipedia-api
+``
+
 1. Create a virtual environment
 ```sh
 python -m venv .venv
@@ -27,9 +32,9 @@ cmake -B build
 cmake --build build --config Release
 ```
 
-5. start uvicorn
+6. start uvicorn
 ```sh
 uvicorn main:app --reload
 ```
 
-6. Open the browser and go to http://127.0.0.1:8000
+7. Open the browser and go to http://127.0.0.1:8000
