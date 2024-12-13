@@ -32,7 +32,7 @@ cmake -B build
 cmake --build build --config Release
 ```
 
-6. start uvicorn
+6. start uvicorn (from the root directory)
 ```sh
 uvicorn main:app --reload
 ```
